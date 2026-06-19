@@ -34,7 +34,6 @@
   html,body{ margin:0; padding:0; height:100%; background:var(--obsidian); color:var(--platinum); }
   body{
     font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    overflow:hidden;
     -webkit-font-smoothing:antialiased;
   }
   ::selection{ background: var(--gold); color:#0b0c0f; }
@@ -51,14 +50,24 @@
   .mono{ font-family:'JetBrains Mono', monospace; }
 
   /* ---------- App shell ---------- */
-  .app{ position:relative; width:100vw; height:100vh; }
+  .app{ position:relative; min-height:100vh; }
 
   .topbar{
-    position:absolute; top:0; left:0; right:0; z-index:30;
+    position:fixed; top:0; left:0; right:0; z-index:30;
     display:flex; align-items:center; justify-content:space-between;
     padding: 20px 28px;
     background: linear-gradient(180deg, rgba(7,7,10,.85), transparent);
     pointer-events:none;
+  }
+
+  @media (max-width: 900px){
+    .topbar{
+      background: rgba(7,7,10,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 14px 18px;
+    }
   }
   .brand{ display:flex; align-items:center; gap:10px; pointer-events:auto; }
   .brand-mark{
@@ -72,17 +81,93 @@
   .counter{ pointer-events:auto; color:var(--muted); font-size:.78rem; letter-spacing:.12em; display:flex; gap:4px;}
   .counter-current{ color:var(--gold-2); }
 
-  .deck{ position:relative; width:100%; height:100%; }
+  /* ---------- DESKTOP: fullscreen deck mode ---------- */
+  @media (min-width: 901px) {
+    body{ overflow:hidden; }
+    .app{ width:100vw; height:100vh; position:relative; overflow:hidden; }
+    .deck{ position:relative; width:100%; height:100%; }
 
-  .slide{
-    position:absolute; inset:0;
-    opacity:0; transform: translateY(26px);
-    transition: opacity .55s cubic-bezier(.22,1,.36,1), transform .55s cubic-bezier(.22,1,.36,1);
-    pointer-events:none; z-index:1;
-    overflow:hidden;
+    .slide{
+      position:absolute; inset:0;
+      opacity:0; transform: translateY(26px);
+      transition: opacity .55s cubic-bezier(.22,1,.36,1), transform .55s cubic-bezier(.22,1,.36,1);
+      pointer-events:none; z-index:1;
+      overflow:hidden;
+    }
+    .slide.active{ opacity:1; transform:none; pointer-events:auto; z-index:3; }
+    .slide.leaving{ opacity:0; transform: translateY(-26px); z-index:2; }
+
+    .slide-grid{
+      position:relative; z-index:2; height:100%;
+      display:grid; grid-template-columns: 1.05fr .95fr; align-items:center;
+      gap: 40px;
+      padding: 100px 64px 56px;
+      max-width:1280px; margin:0 auto;
+    }
+    .price-rows{ max-height:44vh; overflow-y:auto; }
+    .price-rows::-webkit-scrollbar{ width:6px; }
+    .price-rows::-webkit-scrollbar-thumb{ background: var(--gold-deep); border-radius:3px; }
+
+    .slide-intro{ padding-right:12px; }
+    .price-card{ max-width:540px; }
+
+    .cover-slide{
+      display:flex; align-items:center; justify-content:center;
+    }
   }
-  .slide.active{ opacity:1; transform:none; pointer-events:auto; z-index:3; }
-  .slide.leaving{ opacity:0; transform: translateY(-26px); z-index:2; }
+
+  /* ---------- MOBILE: stacked scrollable pages ---------- */
+  @media (max-width: 900px) {
+    body{ overflow-x:hidden; overflow-y:auto; }
+    .app{ min-height:100vh; }
+    .deck{ display:block; }
+
+    .slide{
+      opacity:1; transform:none; pointer-events:auto;
+      position:relative; min-height:100vh;
+      overflow:hidden;
+    }
+    /* hide desktop transitions on mobile */
+    .slide.leaving{ opacity:1; transform:none; }
+
+    .slide-grid{
+      position:relative; z-index:2; min-height:100vh;
+      display:flex; flex-direction:column; justify-content:flex-start;
+      gap: 24px;
+      padding: 90px 20px 60px;
+    }
+
+    .slide-intro{ padding-right:0; }
+    .price-card{ max-width:100%; width:100%; }
+    .price-rows{ max-height:none; overflow-y:visible; }
+
+    .dotnav{
+      position:fixed; left:0; right:0; bottom:0; top:auto; transform:none;
+      width:100%; flex-direction:row; justify-content:center; gap:18px;
+      padding:12px 0 env(safe-area-inset-bottom, 14px);
+      background: rgba(7,7,10,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255,255,255,.06);
+      z-index:30;
+    }
+    .dot-label{ display:none; }
+    .watermark{ display:none; }
+    .scrollcue{ display:none; }
+
+    /* Remove vignette overlay — on stacked mobile sections it creates persistent dark shadows */
+    .slide-bg::after{ display:none; }
+    /* Letterbox is a desktop cinematic effect; on mobile it's a fixed black bar that flickers on scroll */
+    .letterbox, .intro-flash{ display:none !important; }
+
+    /* Extra bottom padding so last price row isn't hidden behind the dot nav bar */
+    .slide-grid{ padding-bottom: 80px; }
+
+    .cover-slide{
+      display:flex; align-items:center; justify-content:center; min-height:100vh;
+    }
+    .cover-inner{ padding:0 20px; }
+  }
 
   .slide-bg{ position:absolute; inset:0; z-index:0; }
   .slide-bg::after{
@@ -135,15 +220,7 @@
     user-select:none; pointer-events:none;
   }
 
-  /* ---------- Slide layout ---------- */
-  .slide-grid{
-    position:relative; z-index:2; height:100%;
-    display:grid; grid-template-columns: 1.05fr .95fr; align-items:center;
-    gap: 40px;
-    padding: 100px 64px 56px;
-    max-width:1280px; margin:0 auto;
-  }
-  .slide-intro{ padding-right:12px; }
+  /* ---------- Slide content ---------- */
   .section-no{ display:inline-block; color:var(--gold-2); font-size:.78rem; letter-spacing:.18em; margin-bottom:18px; }
   .cat-title{
     font-size: clamp(2.6rem, 6vw, 4.4rem);
@@ -166,7 +243,6 @@
     background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 30%), var(--panel);
     border:1px solid var(--line);
     padding: 26px 26px 10px;
-    width:100%; max-width:540px;
     clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
     box-shadow: 0 30px 60px -20px rgba(0,0,0,.6);
   }
@@ -176,9 +252,7 @@
     border-bottom:1px solid var(--line);
     color:var(--muted); font-size:.68rem; letter-spacing:.14em;
   }
-  .price-rows{ list-style:none; max-height:44vh; overflow-y:auto; }
-  .price-rows::-webkit-scrollbar{ width:6px; }
-  .price-rows::-webkit-scrollbar-thumb{ background: var(--gold-deep); border-radius:3px; }
+  .price-rows{ list-style:none; }
 
   .price-rows li{
     display:flex; justify-content:space-between; align-items:center;
@@ -211,9 +285,8 @@
   .swatch-wood{ background: linear-gradient(120deg,#8a5a32,#5c3a1e,#9c6b3e); }
 
   /* ---------- Cover slide ---------- */
-  .cover-slide{ display:flex; align-items:center; justify-content:center; }
   #emberCanvas{ position:absolute; inset:0; z-index:0; }
-  .cover-inner{ position:relative; z-index:2; text-align:center; padding:0 24px; max-width:760px; }
+  .cover-inner{ position:relative; z-index:2; text-align:center; max-width:760px; }
   .crest{ width:96px; height:96px; margin:0 auto 22px; position:relative; display:flex; align-items:center; justify-content:center; }
   .crest-ring{ position:absolute; inset:0; }
   .crest-mono{ font-size:1.7rem; color:var(--gold-2); letter-spacing:.05em; }
@@ -222,8 +295,9 @@
   .title-main{ display:flex; justify-content:center; gap:.04em; }
   .ltr{ display:inline-block; }
   .title-sub{
-    display:block; margin-top:14px;
-    font-size: clamp(.95rem, 2.1vw, 1.3rem); letter-spacing:.32em;
+    display:block; margin-top:10px;
+    font-size: clamp(2.6rem, 6vw, 4.4rem); letter-spacing:.01em;
+    line-height:.98;
     background: linear-gradient(120deg, var(--gold-2), var(--gold) 55%, var(--gold-deep));
     -webkit-background-clip:text; background-clip:text; color:transparent;
     overflow:hidden;
@@ -293,16 +367,9 @@
   .cover-specs{ margin-top:40px; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; color:var(--steel); font-size:.68rem; letter-spacing:.12em; }
   .cover-specs span:nth-child(even){ color:var(--gold-deep); }
 
-  .scroll-hint{
-    position:absolute; bottom:26px; left:0; right:0; text-align:center;
-    color:var(--steel); font-size:.66rem; letter-spacing:.18em;
-    animation: pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes pulse{ 0%,100%{ opacity:.35; } 50%{ opacity:.85; } }
-
   /* ---------- Navigation ---------- */
   .dotnav{
-    position:absolute; right:24px; top:50%; transform: translateY(-50%); z-index:30;
+    position:fixed; right:24px; top:50%; transform: translateY(-50%); z-index:30;
     display:flex; flex-direction:column; gap:14px;
   }
   .dot{ display:flex; align-items:center; gap:10px; justify-content:flex-end; color:var(--steel); }
@@ -317,7 +384,7 @@
   .dot.active .dot-label{ opacity:1; transform:none; color:var(--gold-2); }
 
   .scrollcue{
-    position:absolute; left:28px; bottom:26px; z-index:30;
+    position:fixed; left:28px; bottom:26px; z-index:30;
     display:flex; flex-direction:column; align-items:center; gap:6px;
     color:var(--muted); cursor:pointer; pointer-events:auto;
     transition: opacity .35s ease, color .25s ease;
@@ -328,20 +395,16 @@
   .scrollcue-icon{ width:16px; height:16px; animation: scrollBounce 1.8s ease-in-out infinite; }
   @keyframes scrollBounce{ 0%,100%{ transform:translateY(0); opacity:.55; } 50%{ transform:translateY(6px); opacity:1; } }
 
-  /* ---------- Responsive ---------- */
+  /* ---------- Mobile overrides ---------- */
   @media (max-width: 900px){
-    .slide-grid{ grid-template-columns:1fr; padding:96px 24px 140px; gap:24px; height:auto; min-height:100%; overflow-y:auto; align-content:start; }
-    .price-card{ max-width:100%; }
-    .price-rows{ max-height:none; }
-    .dotnav{ right:auto; left:0; top:auto; bottom:78px; transform:none; width:100%; flex-direction:row; justify-content:center; gap:18px; }
-    .dot-label{ display:none; }
-    .watermark{ display:none; }
-    .scrollcue{ left:auto; right:24px; bottom:24px; }
+    .cat-title{ font-size: clamp(2.6rem, 10vw, 3.8rem); }
   }
+
   @media (max-width:520px){
-    .cover-title{ font-size: clamp(2.6rem, 14vw, 3.6rem); }
-    .topbar{ padding:16px 18px; }
     .brand-word{ display:none; }
+    /* Cover title stays at its natural large size */
+    .cover-title{ font-size: clamp(3.2rem, 11vw, 6.4rem); }
+    /* title-sub inherits the large size set above — no override */
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -394,7 +457,6 @@
           <span>304 STAINLESS</span><span>—</span><span>CHECKERED PLATE</span><span>—</span><span>ALUMINUM</span><span>—</span><span>MICARTA</span><span>—</span><span>MS PLATE</span>
         </div>
       </div>
-      <div class="scroll-hint">SCROLL, SWIPE, OR USE ARROW KEYS TO BROWSE</div>
     </section>
 
     <!-- 1: STAINLESS 304 -->
@@ -566,14 +628,17 @@
   </nav>
 
   <div class="scrollcue mono" id="scrollCue">
-    <span class="scrollcue-label">SCROLL</span>
-    <svg class="scrollcue-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+    <span class="scrollcue-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+    </span>
   </div>
 
 </div>
 
 <script>
 (function(){
+  const isMobile = () => window.innerWidth <= 900;
+
   const slides = Array.from(document.querySelectorAll('.slide'));
   const dots = Array.from(document.querySelectorAll('.dot'));
   const counterEl = document.querySelector('.counter-current');
@@ -605,7 +670,24 @@
     scrollCue.classList.toggle('is-hidden', current === total - 1);
   }
 
+  /* ---- Mobile: scroll to section by index ---- */
+  function scrollToSection(idx){
+    const target = slides[idx];
+    if(!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ---- Desktop: fullscreen deck navigation ---- */
   function goTo(idx){
+    if(isMobile()){
+      idx = Math.max(0, Math.min(total - 1, idx));
+      scrollToSection(idx);
+      current = idx;
+      dots.forEach(d => d.classList.toggle('active', Number(d.dataset.goto) === current));
+      counterEl.textContent = String(current).padStart(2,'0');
+      updateScrollCue();
+      return;
+    }
     idx = Math.max(0, Math.min(total - 1, idx));
     if(idx === current){ return; }
     slides[current].classList.remove('active');
@@ -621,18 +703,35 @@
     updateScrollCue();
   }
 
+  /* ---- Mobile: track visible section via IntersectionObserver ---- */
+  if('IntersectionObserver' in window){
+    const obs = new IntersectionObserver((entries) => {
+      if(!isMobile()) return;
+      entries.forEach(entry => {
+        if(entry.intersectionRatio > 0.45){
+          const idx = Number(entry.target.dataset.index);
+          current = idx;
+          dots.forEach(d => d.classList.toggle('active', Number(d.dataset.goto) === idx));
+          counterEl.textContent = String(idx).padStart(2,'0');
+        }
+      });
+    }, { threshold: 0.45 });
+    slides.forEach(s => obs.observe(s));
+  }
+
   if(scrollCue) scrollCue.addEventListener('click', () => goTo(current + 1));
   dots.forEach(d => d.addEventListener('click', () => goTo(Number(d.dataset.goto))));
   const startBtn = document.getElementById('startBtn');
   if(startBtn) startBtn.addEventListener('click', () => goTo(1));
 
   window.addEventListener('keydown', (e) => {
-    if(e.key === 'ArrowRight') goTo(current + 1);
-    if(e.key === 'ArrowLeft') goTo(current - 1);
+    if(e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
+    if(e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(current - 1);
   });
 
   let wheelLocked = false;
   window.addEventListener('wheel', (e) => {
+    if(isMobile()) return;
     if(wheelLocked) return;
     if(Math.abs(e.deltaY) < 12) return;
     wheelLocked = true;
@@ -642,17 +741,30 @@
 
   updateScrollCue();
 
-  let touchX = null;
-  window.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive:true });
-  window.addEventListener('touchend', e => {
-    if(touchX === null) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    if(dx > 60) goTo(current - 1);
-    if(dx < -60) goTo(current + 1);
-    touchX = null;
+  let touchStartX = null, touchStartY = null;
+  window.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
   }, { passive:true });
 
-  restartRows(slides[0]);
+  window.addEventListener('touchend', e => {
+    if(touchStartX === null || isMobile()) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    // Only trigger swipe if horizontal swipe is dominant (desktop-like side swipe)
+    if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60){
+      if(dx > 0) goTo(current - 1);
+      else goTo(current + 1);
+    }
+    touchStartX = null; touchStartY = null;
+  }, { passive:true });
+
+  /* ---- Trigger row animations for all visible slides on mobile ---- */
+  if(isMobile()){
+    slides.forEach(s => restartRows(s));
+  } else {
+    restartRows(slides[0]);
+  }
 
   if(!reduceMotion){
     const canvas = document.getElementById('emberCanvas');
